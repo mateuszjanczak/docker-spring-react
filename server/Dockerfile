@@ -4,25 +4,21 @@ WORKDIR build
 
 COPY pom.xml .
 
-RUN mvn clean package -Dmaven.test.skip -Dmaven.main.skip -Dspring-boot.repackage.skip && rm -r target
+RUN mvn -B dependency:resolve dependency:resolve-plugins
 
 COPY src ./src
 
-RUN mvn clean package -Dmaven.test.skip
+RUN mvn package
 
-COPY target/*.jar server.jar
-
-RUN java -Djarmode=layertools -jar server.jar extract
+RUN java -Djarmode=layertools -jar target/*.jar extract
 
 FROM openjdk:8-jre-alpine
 
-WORKDIR server
+EXPOSE 8080
 
 COPY --from=builder build/dependencies .
 COPY --from=builder build/spring-boot-loader .
 COPY --from=builder build/snapshot-dependencies .
 COPY --from=builder build/application .
-
-EXPOSE 8080
 
 ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]
